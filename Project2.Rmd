@@ -1,0 +1,288 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Dataset used for the project is Mental health Disorder of various countries from year 1990 to 2017. It covers Schizophrenia,
+Bipolar disorder, Eating disorder, Anxiety disorder, Drug use, Depression, Alcohol use disorder.
+
+It can be downloaded from following link.
+
+**https://data.world/vizzup/mental-health-depression-disorder-data**
+
+The link contains dataset of countries all over the world. It has been updated specific to European countries.
+
+# Part 1: Analysis
+```{r}
+#Load the dataset
+data <- read.csv("mental_health.csv")
+head(data)
+```
+
+```{r}
+#Structure of the dataset
+str(data)
+```
+
+Dataset contains 728 observations/rows and 11 variables/columns.
+This shows that the object is a dataframe. It shows that most of the columns are numerical while 2 are characters.
+
+```{r}
+#Extracting column names in dataset
+colnames(data)
+```
+
+```{r}
+#Extracting countries name
+unique((data$Entity))
+```
+
+There are 26 countries in the dataset for which mental health disorders like Schizophrenia, Bipolar, Eating disorder, Anxiety, Drug use, Depression, Alcohol use will be analyzed.
+
+```{r}
+#To check NA values in dataset
+any(is.na(data))
+```
+
+There are no NA values in dataset.
+
+```{r}
+#Getting summary of dataset
+summary(data)
+```
+
+Dataset contains data from year 1990 to 2017. 
+The topmost disorder is Anxiety as it holds the maximum value out of every disorder. Following that is Depression and Alcohol use.
+
+
+### Country-wise Topmost Disorder
+```{r}
+#Using dplyr to group by Entity column
+library(dplyr)
+top <- data %>%
+   group_by(Entity) %>%
+   summarise(across(everything(), max))
+```
+
+
+```{r}
+#Extracting column names of each country
+colnames(top[,5:11])[max.col(top[,5:11])]
+```
+
+Most common disorder across various european countries is Anxiety disorder. 
+Countries like Estonia, Finland deals with topmost disorder as Alcohol use and Depression respectively. 
+Lithuania, Luxembourg also deals with Alcohol use as  most common disorder. 
+
+### Top 3 disorders in Ireland
+```{r}
+#Extract Ireland from Dataframe into a variable
+v<-data[data$Entity=='Ireland',]     
+#Function to get maximum value in each disorder column
+colMax <- function(dat) sapply(dat, max, na.rm = TRUE)  
+maximum <- colMax(v[,5:11])
+#Sort and get top 3 disorders 
+print(sort(maximum,decreasing = TRUE)[1:3])  
+```
+
+
+Top 3 disorders existing in Ireland is:
+1. Anxiety
+2. Depression
+3. Alcohol Use
+
+### Get yearwise common disorder in Ireland
+```{r}
+#Groupby Year
+top_ireland <- v %>%
+   group_by(Year) %>%
+   summarise(across(everything(), max))
+#extract topmost disorder each year
+colnames(top_ireland[,5:11])[max.col(top_ireland[,5:11])]
+```
+
+Each year from 1990 to 2017, Anxiety has been the most common disorder in Ireland.
+
+## Graphical Analysis
+
+```{r}
+#Import tidyverse
+library(tidyverse)
+#Plot using ggplot
+v %>% 
+  select(-c(Entity,Year,Code,X)) %>% 
+pivot_longer(cols = names(.)) %>% 
+ggplot(aes(x = value, y = "", fill = name)) + 
+  geom_col(position = "stack") + ggtitle("Ireland's disorders frequency")+
+  coord_polar() + 
+  theme_void()
+```
+
+It is clear that most common disorder in Ireland is Anxiety following Depression and Alcohol use. The lowest rate is of Schizophrenia.
+
+
+```{r}
+#Calculating sum of each disorder groupby country
+sum_disorder <- aggregate(.~Entity, data[,c(2,5,6,7,8,9,10,11)], sum)
+
+#Plotting it using barplot
+sum_disorder[1:5,] %>% 
+  pivot_longer(cols = c("Anxiety.disorders....", "Depression....",)) %>%
+  ggplot(aes(name, value, fill = Entity, alpha = name)) +
+  geom_col(position = position_dodge(), color = "black") +
+  scale_alpha_manual(values = c(0.5, 1), guide = guide_none()) +
+  facet_grid(~Entity, scales = "free_x", switch = "x") +
+  theme(axis.text.x = element_text(angle = 90),
+    strip.placement  = "outside",
+        panel.spacing    = unit(0, "points"),
+        strip.background = element_blank(),
+        strip.text       = element_text(face = "bold", size = 12)) +
+  labs(x = "Country")+ggtitle("Countries wise Anxiety and Depression order")
+```
+
+Even though Anxiety is the topmost disorder yet Countries like Austria, Belgium and Cyprus shows Anxiety as highest value compare to countries like Bulgaria and Croatia.
+
+\newpage
+# Part 2: R Package
+
+**DataExplorer** 
+
+Great functions for exploratory analysis.
+
+**Introduction:**
+Exploratory Data Analysis (EDA) is the initial and an important phase of data analysis/predictive modeling. During this process, analysts/modelers will have a first look of the data, and thus generate relevant hypotheses and decide next steps. However, the EDA process could be a hassle at times. This R package aims to automate most of data handling and visualization, so that users could focus on studying the data and extracting insights.
+
+**Installation:**
+The package can be installed directly from CRAN.
+
+install.packages("DataExplorer")
+
+There are 3 main goals for DataExplorer:
+
+1. Exploratory Data Analysis (EDA)
+2. Feature Engineering
+3. Data Reporting
+
+Each one of them has different sets of functions.
+
+**Key Functions of the package:**
+
+The package is extremely easy to use. Almost everything could be done in one line of code.
+
+# 1. EDA
+##  To quickly visualize the structure of the dataset
+```{r}
+library(DataExplorer)
+#Take dataset from part 1
+data_1 <- data
+plot_str(data_1)
+```
+
+## To get introduced to your newly created dataset.
+
+```{r}
+introduce(data_1)
+```
+## To visualize the table above (with some light analysis).
+
+```{r}
+plot_intro(data_1)
+```
+
+## Missing values
+ To check missing values in dataset.
+ Simply use plot_missing function to visualize missing profile for each feature
+ 
+plot_missing(data_1)
+
+
+## Distributions
+**Bar Charts**
+To visualize frequency distributions for all discrete features - There are multiple plots to visualize distributions:
+
+plot_bar(data_1), plot_histogram(data_1)
+
+# 2. Feature Engineering
+
+##  One hot encoding
+To transform the data into binary format (so that ML algorithms can pick it up), dummify will do the job. The function preserves original data structure, so that only eligible discrete features will be turned into binary format.
+
+plot_str(
+  list(
+    "original" = data_1,
+    "dummified" = dummify(data_1, maxcat = 5L)
+  )
+)
+
+**Note - There are many more functions in Feature engineering part.**
+
+# 3. Data Reporting
+
+One of the function of Data reporting is:
+create_report(data_1)
+
+There are many more functions in Data Reporting.
+
+\newpage
+# Part 3: Functions/Programming
+
+```{r}
+# Creating a S3 class
+class(data) <- 'stats'
+
+#Creating a print function to print total number of all disorders in 27 years
+
+print.stats <- function(p) {
+  
+cat('Total Schizophrenia cases',sum(p$Schizophrenia....), '\n')
+cat('Total Bipolar cases', sum(p$Bipolar.disorder....), '\n')
+cat('Total Eating disorder cases', sum(p$Eating.disorders....), '\n')
+cat('Total Anxiety cases', sum(p$Anxiety.disorders....), '\n')
+cat('Total Drugs use cases', sum(p$Drug.use.disorders....), '\n')
+cat('Total Depression cases', sum(p$Depression....), '\n')
+cat('Total Alcohol use cases', sum(p$Alcohol.use.disorders....), '\n')
+}
+
+print(data)
+```
+
+All these values are in %.
+
+The topmost disorder in European countries is Anxiety during 27 years. Following which is Depression and Alcohol use.
+The lowest rate disorder which people in European countries suffers is Schizophrenia.
+
+```{r}
+#Creating a summary method to test correlation between Anxiety and Depression disorder
+summary.stats <- function(j){
+
+cor(j$Anxiety.disorders....,j$Depression....)
+
+}
+summary(data)
+```
+
+The correlation between Anxiety and Depression is 0.39 which is quite low. This proves that both the disorders are less related to each other. It indicates that occurence of one doesn't leads to other.
+
+```{r}
+#Creating a Plot method between Anxiety and Depression disorder
+plot.stats <- function(d) {
+  
+plot(d$Anxiety.disorders...., d$Depression...., xlab = "Anxiety", ylab = "Depression",
+     main = "Relationship b/w Anxiety and Depression")
+}
+
+plot(data)
+```
+
+It is clear both the variables are showing non-linear behaviour, hence, both are not related to each other. 
+
+
+**Conclusions**
+
+1. It is clear Anxiety is the most common disorder in most of the European countries.
+
+2. Each disorder is unrelated to each other which means there is no such dependency of occurence of one disorder due to other.
+
+3. Schizophrenia is the disorder only few percentage of people suffer in European countries.
+
+4. Germany is the the country with the topmost Anxiety disorder rate following Denmark, Greece.
