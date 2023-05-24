@@ -7,7 +7,7 @@ https://data.world/vizzup/mental-health-depression-disorder-data
 
 The link contains dataset of countries all over the world. It has been updated specific to European countries.
 
-In given R code, we have performed following implementations:
+The code is done in Rmd file. We have performed following implementations:
 
 1. Data Analysis
 2. Understanding of R packages used
